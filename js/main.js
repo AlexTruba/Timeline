@@ -60,6 +60,244 @@ $(function () {
                     content: 'Find problem in code.'
                 }
             ]
+        },{
+            name: "Vasya",
+            events: [
+                {
+                    start: '2017-05-26 10:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 13:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+         {
+             name: "Vasya",
+             events: [
+                 {
+                     start: '2017-05-26 10:00',
+                     end: '2017-05-26 11:15',
+                     content: 'text text text text ...'
+                 },
+                 {
+                     start: '2017-05-26 12:00',
+                     end: '2017-05-26 13:00',
+                     content: 'Find problem in code.'
+                 }
+             ]
+         },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        }
+		,
+		{
+            name: "Vasya",
+            events: [
+                {
+                    start: '2017-05-26 10:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 13:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+         {
+             name: "Vasya",
+             events: [
+                 {
+                     start: '2017-05-26 10:00',
+                     end: '2017-05-26 11:15',
+                     content: 'text text text text ...'
+                 },
+                 {
+                     start: '2017-05-26 12:00',
+                     end: '2017-05-26 13:00',
+                     content: 'Find problem in code.'
+                 }
+             ]
+         },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },{
+            name: "Vasya",
+            events: [
+                {
+                    start: '2017-05-26 10:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 13:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+         {
+             name: "Vasya",
+             events: [
+                 {
+                     start: '2017-05-26 10:00',
+                     end: '2017-05-26 11:15',
+                     content: 'text text text text ...'
+                 },
+                 {
+                     start: '2017-05-26 12:00',
+                     end: '2017-05-26 13:00',
+                     content: 'Find problem in code.'
+                 }
+             ]
+         },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },{
+            name: "Vasya",
+            events: [
+                {
+                    start: '2017-05-26 10:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 13:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
+        },
+         {
+             name: "Vasya",
+             events: [
+                 {
+                     start: '2017-05-26 10:00',
+                     end: '2017-05-26 11:15',
+                     content: 'text text text text ...'
+                 },
+                 {
+                     start: '2017-05-26 12:00',
+                     end: '2017-05-26 13:00',
+                     content: 'Find problem in code.'
+                 }
+             ]
+         },
+        {
+            name: "Petya",
+            events: [
+                {
+                    start: '2017-05-26 8:00',
+                    end: '2017-05-26 11:15',
+                    content: 'text text text text ...'
+                },
+                {
+                    start: '2017-05-26 12:00',
+                    end: '2017-05-26 15:00',
+                    content: 'Find problem in code.'
+                }
+            ]
         }
 
     ]
@@ -74,7 +312,7 @@ $(function () {
         showHeadline: false,
         scale: "days",
         rowHeight: 40,
-        minGridPer: 2,
+        minGridPer: 4,
         afterAddEvent: function(sDate, eDate){
             console.log(sDate, eDate);
         }
