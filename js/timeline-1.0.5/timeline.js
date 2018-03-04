@@ -7,11 +7,89 @@
  * Lisenced: MIT
  */
 (function ($) {
+    class ScaleManager {
+        constructor(timeline, options) {
+            var element = $(timeline).data('timeline');
+            var events = $(timeline).find('.timeline-events');
+            this.width = events.width();
+            this.height = events.height();
+            this.startDate = this.getStartDate(options);
+            this.endDate = this.getEndDate(options, this.startDate);
+            this.datediff = this.endDate - this.startDate;
+            this.rate = Math.round(this.datediff / this.width);
+            this.columnsCount = this.getColumnsCount(options);
+            this.columnPortion = this.width / this.columnsCount;
+            this.rowsCount = options.rows;
+            this.rowPortion = this.height / this.rowsCount;
+        }
+
+        getEndDate(options, startDate) {
+            switch (options.scale) {
+                case 'years': return new Date(startDate.getFullYear() + options.range, startDate.getMonth(), startDate.getDate());
+                case 'months': return new Date(startDate.getFullYear(), startDate.getMonth() + options.range, startDate.getDate());
+                default: return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + options.range);
+            }
+        }
+
+        getStartDate(options) {
+            return new Date(normalizeDate(options.startDatetime));
+        }
+
+        getColumnsCount(options) {
+            switch (options.scale) {
+                case 'years': //todo
+                case 'months': //todo
+                default: return 24 * options.minGridPer * options.range;
+            }
+        }
+
+        getX(e) {
+            if ($(e.target).hasClass('timeline-node')) {
+                return $(e.target).position().left + e.offsetX;
+            }
+            else {
+                return e.offsetX;
+            }
+        }
+
+        getY(e) {
+            var result = 0;
+            if ($(e.target).hasClass('timeline-node')) {
+                result = $(e.target).position().top + e.offsetY + $(e.target).outerHeight(true) - $(e.target).outerHeight();
+            }
+            else {
+                result = e.offsetY;
+            }
+            return result;
+        }
+
+        getDateTime(e, direction) {
+            return new Date(this.startDate.getTime() + this.getFixedPart(e, direction) * this.rate);
+        }
+
+        getFixedPart(e, direction) {
+            if (direction > 0) {
+                return Math.ceil(this.getX(e) / this.columnPortion) * this.columnPortion;
+            }
+            else if (direction == 0) {
+                return this.getX(e);
+            }
+            else {
+                return Math.floor(this.getX(e) / this.columnPortion) * this.columnPortion;
+            }
+        }
+
+        getRowNumber(e) {
+            var result = Math.ceil(this.getY(e) / this.rowPortion);
+            return result;
+        }
+    }
 
     class TmpStorage {
         constructor() {
             this.isClicking = false;
             this.newElement = null;
+            this.direction = true;
         }
 
         get IsClicking() {
@@ -30,19 +108,18 @@
             this.newElement = value;
         }
 
+        get Direction() {
+            return this.direction;
+        }
+
+        set Direction(value) {
+            this.direction = value;
+        }
+
         clear() {
             if (this.NewElement != null) {
                 this.NewElement.remove();
                 this.newElement = null;
-            }
-        }
-
-        getLeft() {
-            if (this.newElement != null) {
-                return this.newElement.position().left;
-            }
-            else {
-                return 0;
             }
         }
     }
@@ -52,6 +129,8 @@
         pointMargin = 2,
         tlEventAreaH = 0,
         rowH;
+
+    var scaleManager = null;
 
     var methods = {
         init: function (options) {
@@ -642,6 +721,7 @@
         },
         onAfterRender: function (options) {
             $(this).off('afterRender.timeline');
+            scaleManager = new ScaleManager(this, methods.getOptions.call(this));
             var $this = $(this);
             var timelineEvents = $(this).find('.timeline-events');
             var tmpStorage = new TmpStorage();
@@ -662,63 +742,47 @@
             return result;
         },
         onMousedown: function (e, storage) {
-            if (e.which === 1 && !$(e.target).hasClass('timeline-node')) {
-                storage.clear();
-            }
-
-            if (e.which === 1 && storage.NewElement == null) {
+            if (e.which===1) {
                 storage.IsClicking = true;
-                var timelineEvents = $(this).find('.timeline-events');
-                var data = this.data('timeline');
-                storage.NewElement = $('<div />', { addClass: "timeline-node timeline-text-truncate", text: "simple" });
-                var yCord = (((e.offsetY) / 40) | 0);
-                var xCord = (((e.offsetX) / methods.getWidth(data)) | 0);
-                storage.NewElement.css({ "top": yCord * 40 + "px", "left": xCord * methods.getWidth(data) + "px", "width": methods.getWidth(data) * 1 + "px", "background-color": "#C0C0C0" });
-                storage.NewElement.attr("isNew", "true");
-                timelineEvents.append(storage.NewElement);
-                return true;
-            }
-            else {
-                return false;
+                var newEvent = {
+                    start: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1)),
+                    end: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1)),
+                    row: scaleManager.getRowNumber(e),
+                    label: 'New'
+                };
+                $(this).timeline('addEvent', [newEvent]);
+                var opt = $(this).timeline('getOptions');
+                storage.NewElement = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
             }
         },
         onMousemove: function (e, storage) {
             if (storage.IsClicking && storage.NewElement) {
-                var data = this.data('timeline');
-                var prevX = storage.getLeft();
-                var currX = methods.getOffsetX(e);
-                var diff = ((currX - prevX) / methods.getWidth(data) | 0);
-                console.log(diff);
-                if (diff >= 0) {
-                    storage.NewElement.css({ "width": methods.getWidth(data) * (diff + 1) + "px" });
+                var selDate = scaleManager.getDateTime(e, 0);
+                var opt = $(this).timeline('getOptions');
+                var last = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
+                var endDate = new Date(normalizeDate(last.end));
+                var startDate = new Date(normalizeDate(last.start));
+                var newEl = jQuery.extend(true, {}, storage.NewElement);
+                var direction = storage.Direction;
+                if (selDate > endDate) {
+                    newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
+                    storage.Direction = true;
+                } else if (selDate < startDate) {
+                    newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
+                    storage.Direction = false;
+                } else if (selDate < endDate && direction) {
+                    newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
+                } else if (selDate > startDate && !direction) {
+                    newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
                 }
-                else {
-                    var parentWidth = $(e.target).outerWidth();
-                    var xCord = (((e.offsetX) / methods.getWidth(data)) | 0);
-                    //console.log(methods.getWidth(data) * xCord);
-                    storage.NewElement.css({ "left": "auto" });
-                    storage.NewElement.css({ "right": (parentWidth - e.offsetX) + "px" });
-                    storage.NewElement.css({ "width": methods.getWidth(data) * (-diff + 1) + "px" });
-                }
+                storage.NewElement = newEl;
+                $(this).timeline('updateEvent', [newEl]);
             }
         },
         onMouseup: function (e, storage) {
             storage.IsClicking = false;
             if (storage.NewElement) {
-                var data = this.data('timeline');
-                var timelineDate = new Date(data.timeline.attr('start-datetime'));
-                var xStart = ((storage.getLeft() / methods.getWidth(data)) | 0);
-                var xEnd = (((methods.getOffsetX(e)) / methods.getWidth(data)) | 0) + 1;
-                var startDate = new Date(timelineDate.getTime() + timelineDate.getTimezoneOffset() * 60000 + xStart * methods.getWidth(data) * 60000);
-                var endDate = new Date(timelineDate.getTime() + timelineDate.getTimezoneOffset() * 60000 + xEnd * methods.getWidth(data) * 60000);
-            }
-        },
-        getOffsetX: function (e) {
-            if ($(e.target).hasClass('timeline-node')) {
-                return $(e.target).position().left + e.offsetX;
-            }
-            else {
-                return e.offsetX;
+
             }
         },
 
@@ -726,27 +790,24 @@
             return this.each(function () {
                 var $this = $(this),
                     data = $this.data('timeline'),
-                    eventNodes = (new Function('return ' + data.timeline.text()))(),
-                    incrementId = 1,
-                    _ids = [incrementId];
-                // add events
+                    eventNodes = (new Function('return ' + data.timeline.text()))();
+                var lastId = 1;
+                //add event s
                 if (events.length > 0) {
-                    $.each(eventNodes, function (i, evt) {
-                        _ids.push(Number(evt.eventId));
-                    });
-                    incrementId = Math.max.apply(null, _ids) + 1;
                     $.each(events, function (i, evt) {
-                        evt['eventId'] = incrementId;
-                        incrementId++;
+                        var a = eventNodes.filter(t => t.row == events[0].row);
+                        lastId = a[a.length - 1].eventId;
+                        evt['eventId'] = ++lastId;
                         eventNodes.push(evt);
                     });
                     data.timeline.text(JSON.stringify(eventNodes));
                 }
-                placeRowsSignature($this);
+               
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 // Alignment to current node
-                $(this).trigger('align.timeline', ['evt-' + (incrementId - 1), 'fast']);
+                $(this).trigger('align.timeline', ['evt-' + (lastId - 1), 'fast']);
 
                 if (data && typeof callback === 'function') {
                     // console.info( 'Fired "addEvent" method after events addition.' );
@@ -791,7 +852,7 @@
                 }
                 data.timeline.text(JSON.stringify(eventNodes));
 
-                placeRowsSignature($this);
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 if (data && typeof callback === 'function') {
@@ -834,7 +895,7 @@
                     data.timeline.text(JSON.stringify(eventNodes));
                 }
 
-                placeRowsSignature($this);
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 // Alignment to current node
@@ -1263,7 +1324,7 @@
         var data = $(obj).data('timeline'),
         rowH = Number(data.timeline.attr('row-height')),
         dataEvent = JSON.parse(data.timeline.attr('info'));
-
+        $('.timeline-signature').empty();
         for (var i = 0; i < dataEvent.length; i++) {
             tlNodeElm = $('<div />', {
                 addClass: 'timeline-rows-signature',
@@ -1306,21 +1367,8 @@
                 tlEndDt.setDate(tlEndDt.getDate() + tlRange);
                 break;
         }
-        /*var dataEvent =  JSON.parse(data.timeline.attr('info'));
-        for (var i = 0; i < dataEvent.length; i++) {
-            var events = dataEvent[i].events;
-            for (var j = 0; j < events.length; j++) {
-              eventNodes.push({
-                row: i+1,
-                start: events[j].start,
-                end: events[j].end,
-                label: events[j].content,
-                eventId: Number(i+''+j)
-              });
-            }
-        }*/
-        //$this.find('.timeline-events').empty();
 
+        $this.find('.timeline-events').empty();
 
         eventNodes.forEach(function (evt) {
             if (evt.start) {
