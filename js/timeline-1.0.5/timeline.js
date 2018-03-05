@@ -28,10 +28,10 @@
                 if ((this.minDateStart == null || this.minDateStart < dtEnd) && obj.start >= dtEnd) {
                     this.minDateStart = dtEnd
                 }
-              
+
                 if ((this.maxDateEnd == null || this.maxDateEnd > dtStart) && obj.end <= dtStart) {
                     this.maxDateEnd = dtStart;
-                }             
+                }
             }, this);
         }
         getDateStartIsValid(date) {
@@ -752,6 +752,7 @@
         onMousedown: function (e) {
             if (e.which === 1 && !e.target.id) {
                 actionStorage.IsClicking = true;
+                $(this).off('align.timeline');
                 if (actionStorage.NewElement != null) {
                     $(this).timeline('removeEvent', [actionStorage.NewElement.eventId]);
                     actionStorage.clear();
@@ -795,6 +796,7 @@
         },
         onMouseup: function (e) {
             actionStorage.IsClicking = false;
+            $(this).on('align.timeline', methods.alignment);
         },
         addEvent: function (events, callback) {
             return this.each(function () {
