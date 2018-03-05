@@ -312,7 +312,7 @@ $(function () {
         showHeadline: false,
         scale: "days",
         rowHeight: 40,
-        minGridPer: 4,
+        minGridPer: 2,
         afterAddEvent: function(sDate, eDate){
             console.log(sDate, eDate);
         }
