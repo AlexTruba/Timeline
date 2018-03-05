@@ -7,22 +7,59 @@
  * Lisenced: MIT
  */
 (function ($) {
-    class ScaleManager {
-        constructor(timeline, options) {
-            var element = $(timeline).data('timeline');
-            var events = $(timeline).find('.timeline-events');
-            this.width = events.width();
-            this.height = events.height();
-            this.startDate = this.getStartDate(options);
-            this.endDate = this.getEndDate(options, this.startDate);
-            this.datediff = this.endDate - this.startDate;
-            this.rate = Math.round(this.datediff / this.width);
-            this.columnsCount = this.getColumnsCount(options);
-            this.columnPortion = this.width / this.columnsCount;
-            this.rowsCount = options.rows;
-            this.rowPortion = this.height / this.rowsCount;
+    class EventDateValidator {
+        constructor() {
+            this.eventList = null;
+            this.minDateStart = null;
+            this.maxDateEnd = null;
         }
 
+        setEventList(events, rowNumber, obj) {
+            this.minDateStart = null;
+            this.maxDateEnd = null;
+            this.eventList = events.filter(item=>item.row == rowNumber);
+            this.initializeLimits(this.eventList, obj);
+        }
+        initializeLimits(list, obj) {
+            list.forEach(function (item) {
+                var dtStart = new Date(normalizeDate(item.start));
+                var dtEnd = new Date(normalizeDate(item.end));
+
+                if ((this.minDateStart == null || this.minDateStart < dtEnd) && obj.start >= dtEnd) {
+                    this.minDateStart = dtEnd
+                }
+              
+                if ((this.maxDateEnd == null || this.maxDateEnd > dtStart) && obj.end <= dtStart) {
+                    this.maxDateEnd = dtStart;
+                }             
+            }, this);
+        }
+        getDateStartIsValid(date) {
+            return this.minDateStart == null || this.minDateStart <= date;
+        }
+        getDateEndIsValid(date) {
+            return this.maxDateEnd == null || this.maxDateEnd >= date;
+        }
+    }
+
+    class CoordinateGridManager {
+        constructor(workspace, options, className) {
+            this.itemClassName = className;
+            this.width = workspace.width();
+            this.height = workspace.height();
+            this.startDate = this.getStartDate(options);
+            this.endDate = this.getEndDate(options, this.startDate);
+            this.dateRange = this.endDate - this.startDate;
+            this.pxTimeRate = Math.round(this.dateRange / this.width);
+            this.columnsCount = this.getColumnsCount(options);
+            this.rowsCount = options.rows;
+            this.columnSize = this.width / this.columnsCount;
+            this.rowSize = this.height / this.rowsCount;
+        }
+
+        getStartDate(options) {
+            return new Date(normalizeDate(options.startDatetime));
+        }
         getEndDate(options, startDate) {
             switch (options.scale) {
                 case 'years': return new Date(startDate.getFullYear() + options.range, startDate.getMonth(), startDate.getDate());
@@ -30,11 +67,6 @@
                 default: return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + options.range);
             }
         }
-
-        getStartDate(options) {
-            return new Date(normalizeDate(options.startDatetime));
-        }
-
         getColumnsCount(options) {
             switch (options.scale) {
                 case 'years': //todo
@@ -42,84 +74,60 @@
                 default: return 24 * options.minGridPer * options.range;
             }
         }
-
         getX(e) {
-            if ($(e.target).hasClass('timeline-node')) {
-                return $(e.target).position().left + e.offsetX;
+            var jTargetElement = $(e.target);
+            if (jTargetElement.hasClass(this.itemClassName)) {
+                var paddingValue = jTargetElement.outerWidth(true) - jTargetElement.outerWidth();
+                return jTargetElement.position().left + e.offsetX + paddingValue;
             }
             else {
                 return e.offsetX;
             }
         }
-
         getY(e) {
-            var result = 0;
-            if ($(e.target).hasClass('timeline-node')) {
-                result = $(e.target).position().top + e.offsetY + $(e.target).outerHeight(true) - $(e.target).outerHeight();
+            var jTargetElement = $(e.target);
+            if (jTargetElement.hasClass(this.itemClassName)) {
+                var paddingValue = jTargetElement.outerHeight(true) - jTargetElement.outerHeight();
+                return jTargetElement.position().top + e.offsetY + paddingValue;
             }
             else {
-                result = e.offsetY;
-            }
-            return result;
-        }
-
-        getDateTime(e, direction) {
-            return new Date(this.startDate.getTime() + this.getFixedPart(e, direction) * this.rate);
-        }
-
-        getFixedPart(e, direction) {
-            if (direction > 0) {
-                return Math.ceil(this.getX(e) / this.columnPortion) * this.columnPortion;
-            }
-            else if (direction == 0) {
-                return this.getX(e);
-            }
-            else {
-                return Math.floor(this.getX(e) / this.columnPortion) * this.columnPortion;
+                return e.offsetY;
             }
         }
-
-        getRowNumber(e) {
-            var result = Math.ceil(this.getY(e) / this.rowPortion);
-            return result;
+        getPositionColumnNumber(e) {
+            return Math.ceil(this.getX(e) / this.columnSize);
+        }
+        getPositionRowNumber(e) {
+            return Math.ceil(this.getY(e) / this.rowSize);
+        }
+        getPositionDateCurrent(e) {
+            return new Date(this.startDate.getTime() + this.getX(e) * this.pxTimeRate);
+        }
+        getPositionDateNext(e) {
+            var date = new Date(this.startDate.getTime() + this.getPositionColumnNumber(e) * this.columnSize * this.pxTimeRate);
+            date.setMilliseconds(0);
+            return date;
+        }
+        getPositionDatePrevious(e) {
+            var date = new Date(this.startDate.getTime() + (this.getPositionColumnNumber(e) - 1) * this.columnSize * this.pxTimeRate);
+            date.setMilliseconds(0);
+            return date;
         }
     }
 
-    class TmpStorage {
+    class ActionStorage {
         constructor() {
-            this.isClicking = false;
-            this.newElement = null;
-            this.direction = true;
-        }
-
-        get IsClicking() {
-            return this.isClicking;
-        }
-
-        set IsClicking(value) {
-            this.isClicking = value;
-        }
-
-        get NewElement() {
-            return this.newElement;
-        }
-
-        set NewElement(value) {
-            this.newElement = value;
-        }
-
-        get Direction() {
-            return this.direction;
-        }
-
-        set Direction(value) {
-            this.direction = value;
+            this.IsClicking = false;
+            this.NewElement = null;
+            this.StartDate = null;
+            this.EndDate = null;
         }
 
         clear() {
             if (this.NewElement != null) {
-                this.NewElement.remove();
-                this.newElement = null;
+                this.NewElement = null;
+                this.StartDate = null;
+                this.EndDate = null;
             }
         }
     }
@@ -130,7 +138,9 @@
         tlEventAreaH = 0,
         rowH;
 
-    var scaleManager = null;
+    var coordinateGridManager = null;
+    var actionStorage = null;
+    var eventDateValidator = null;
 
     var methods = {
         init: function (options) {
@@ -222,7 +232,7 @@
                 $this.on('click.timeline', '.timeline-node', methods.openEvent);
                 $this.on('align.timeline', methods.alignment);
                 $this.on('afterRender.timeline', function () {
-                    methods.onAfterRender.call(this, $(this).data('timeline'));
+                    methods.onAfterRender.call(this);
                 });
 
 
@@ -719,73 +729,73 @@
                 events: (new Function('return ' + data.timeline.text()))()
             };
         },
-        onAfterRender: function (options) {
+        onAfterRender: function () {
             $(this).off('afterRender.timeline');
-            scaleManager = new ScaleManager(this, methods.getOptions.call(this));
             var $this = $(this);
+            var options = methods.getOptions.call(this);
             var timelineEvents = $(this).find('.timeline-events');
-            var tmpStorage = new TmpStorage();
+            coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node');
+            actionStorage = new ActionStorage();
+            eventDateValidator = new EventDateValidator();
             /* ****************************** */
             //if (typeof callback !== "function") return false;
             timelineEvents.on("mousedown", function (e) {
-                methods.onMousedown.call($this, e, tmpStorage);
+                methods.onMousedown.call($this, e);
             });
             timelineEvents.on("mousemove", function (e) {
-                methods.onMousemove.call($this, e, tmpStorage);
+                methods.onMousemove.call($this, e);
             });
             timelineEvents.on("mouseup", function (e) {
-                methods.onMouseup.call($this, e, tmpStorage);
+                methods.onMouseup.call($this, e);
             });
         },
-        getWidth: function (data) {
-            var result = Number(data.timeline.attr('min-grid-size')) < 5 ? 30 : Number(data.timeline.attr('min-grid-size'));
-            return result;
-        },
-        onMousedown: function (e, storage) {
-            if (e.which===1) {
-                storage.IsClicking = true;
-                var newEvent = {
-                    start: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1)),
-                    end: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1)),
-                    row: scaleManager.getRowNumber(e),
-                    label: 'New'
-                };
-                $(this).timeline('addEvent', [newEvent]);
-                var opt = $(this).timeline('getOptions');
-                storage.NewElement = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
-            }
-        },
-        onMousemove: function (e, storage) {
-            if (storage.IsClicking && storage.NewElement) {
-                var selDate = scaleManager.getDateTime(e, 0);
-                var opt = $(this).timeline('getOptions');
-                var last = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
-                var endDate = new Date(normalizeDate(last.end));
-                var startDate = new Date(normalizeDate(last.start));
-                var newEl = jQuery.extend(true, {}, storage.NewElement);
-                var direction = storage.Direction;
-                if (selDate > endDate) {
-                    newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
-                    storage.Direction = true;
-                } else if (selDate < startDate) {
-                    newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
-                    storage.Direction = false;
-                } else if (selDate < endDate && direction) {
-                    newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
-                } else if (selDate > startDate && !direction) {
-                    newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
+        onMousedown: function (e) {
+            if (e.which === 1 && !e.target.id) {
+                actionStorage.IsClicking = true;
+                if (actionStorage.NewElement != null) {
+                    $(this).timeline('removeEvent', [actionStorage.NewElement.eventId]);
+                    actionStorage.clear();
                 }
-                storage.NewElement = newEl;
-                $(this).timeline('updateEvent', [newEl]);
+                actionStorage.StartDate = coordinateGridManager.getPositionDatePrevious(e);
+                actionStorage.EndDate = coordinateGridManager.getPositionDateNext(e);
+                actionStorage.NewElement = {
+                    label: 'New',
+                    bgColor: '#E5E5E5',
+                    start: formatDate('Y-m-d G:i', actionStorage.StartDate),
+                    end: formatDate('Y-m-d G:i', actionStorage.EndDate),
+                    row: coordinateGridManager.getPositionRowNumber(e)
+                };
+                eventDateValidator.setEventList($(this).timeline('getOptions').events, coordinateGridManager.getPositionRowNumber(e), {
+                    start: actionStorage.StartDate,
+                    end: actionStorage.EndDate
+                });
+                $(this).timeline('addEvent', [actionStorage.NewElement]);
             }
         },
-        onMouseup: function (e, storage) {
-            storage.IsClicking = false;
-            if (storage.NewElement) {
+        onMousemove: function (e) {
+            if (actionStorage.IsClicking && actionStorage.NewElement) {
+                var selDate = coordinateGridManager.getPositionDateCurrent(e);
+                if (selDate > actionStorage.EndDate) {
+                    var date = coordinateGridManager.getPositionDateNext(e);
+                    if (eventDateValidator.getDateEndIsValid(date)) {
+                        actionStorage.NewElement.start = formatDate('Y-m-d G:i', actionStorage.StartDate);
+                        actionStorage.NewElement.end = formatDate('Y-m-d G:i', date);
+                        $(this).timeline('updateEvent', [actionStorage.NewElement]);
+                    }
 
+                } else if (selDate < actionStorage.StartDate) {
+                    var date = coordinateGridManager.getPositionDatePrevious(e);
+                    if (eventDateValidator.getDateStartIsValid(date)) {
+                        actionStorage.NewElement.start = formatDate('Y-m-d G:i', date);
+                        actionStorage.NewElement.end = formatDate('Y-m-d G:i', actionStorage.EndDate);
+                        $(this).timeline('updateEvent', [actionStorage.NewElement]);
+                    }
+                }
             }
         },
-
+        onMouseup: function (e) {
+            actionStorage.IsClicking = false;
+        },
         addEvent: function (events, callback) {
             return this.each(function () {
                 var $this = $(this),
@@ -802,7 +812,7 @@
                     });
                     data.timeline.text(JSON.stringify(eventNodes));
                 }
-               
+
                 //placeRowsSignature($this);
                 placeEvents($this);
 
@@ -1814,7 +1824,7 @@
 
     function normalizeDate(dateString) {
         // For Safari
-        return dateString.replace(/-/g, '/');
+        return dateString ? dateString.replace(/-/g, '/') : "";
     }
 
     function retriveDaysGrid(minuteInterval, minGridPer) {
@@ -1870,7 +1880,7 @@
         var baseDt = Object.prototype.toString.call(date) === '[object Date]' ? date : new Date(normalizeDate(date)),
             month = { 'Jan': 'January', 'Feb': 'February', 'Mar': 'March', 'Apr': 'April', 'May': 'May', 'Jun': 'June', 'Jul': 'July', 'Aug': 'August', 'Sep': 'September', 'Oct': 'October', 'Nov': 'November', 'Dec': 'December' },
             day = { 'Sun': 'Sunday', 'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 'Thu': 'Thurseday', 'Fri': 'Friday', 'Sat': 'Saturday' },
-            ma = ['am', 'pm'],
+            ma = ['am', 'pm'], //err
             formatStrings = format.split(''),
             converted = '',
             esc = false,
