@@ -760,7 +760,7 @@
                 actionStorage.StartDate = coordinateGridManager.getPositionDatePrevious(e);
                 actionStorage.EndDate = coordinateGridManager.getPositionDateNext(e);
                 actionStorage.NewElement = {
-                    label: 'New',
+                    label: '',
                     bgColor: '#E5E5E5',
                     start: formatDate('Y-m-d G:i', actionStorage.StartDate),
                     end: formatDate('Y-m-d G:i', actionStorage.EndDate),
@@ -1516,6 +1516,7 @@
                             addClass: 'timeline-node timeline-text-truncate',
                             id: 'evt-' + evt.eventId,
                             css: {
+                                "min-height": 28 + 'px', //doto
                                 left: coordinate.x + 'px',
                                 top: coordinate.y + 'px',
                                 width: coordinate.w + 'px'
