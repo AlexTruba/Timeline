@@ -89,6 +89,7 @@
         constructor() {
             this.isClicking = false;
             this.newElement = null;
+            this.direction = true;
         }
 
         get IsClicking() {
@@ -105,6 +106,14 @@
 
         set NewElement(value) {
             this.newElement = value;
+        }
+
+        get Direction() {
+            return this.direction;
+        }
+
+        set Direction(value) {
+            this.direction = value;
         }
 
         clear() {
@@ -733,16 +742,18 @@
             return result;
         },
         onMousedown: function (e, storage) {
-            storage.IsClicking = true;
-            var newEvent = {
-                start: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1)),
-                end: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1)),
-                row: scaleManager.getRowNumber(e),
-                label: 'New'
-            };
-            $(this).timeline('addEvent', [newEvent]);
-            var opt = $(this).timeline('getOptions');
-            storage.NewElement = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
+            if (e.which===1) {
+                storage.IsClicking = true;
+                var newEvent = {
+                    start: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1)),
+                    end: formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1)),
+                    row: scaleManager.getRowNumber(e),
+                    label: 'New'
+                };
+                $(this).timeline('addEvent', [newEvent]);
+                var opt = $(this).timeline('getOptions');
+                storage.NewElement = jQuery.extend(true, {}, opt.events[opt.events.length - 1]);
+            }
         },
         onMousemove: function (e, storage) {
             if (storage.IsClicking && storage.NewElement) {
@@ -752,11 +763,19 @@
                 var endDate = new Date(normalizeDate(last.end));
                 var startDate = new Date(normalizeDate(last.start));
                 var newEl = jQuery.extend(true, {}, storage.NewElement);
+                var direction = storage.Direction;
                 if (selDate > endDate) {
                     newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
+                    storage.Direction = true;
                 } else if (selDate < startDate) {
                     newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
+                    storage.Direction = false;
+                } else if (selDate < endDate && direction) {
+                    newEl.end = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, 1));
+                } else if (selDate > startDate && !direction) {
+                    newEl.start = formatDate('Y-m-d G:i', scaleManager.getDateTime(e, -1));
                 }
+                storage.NewElement = newEl;
                 $(this).timeline('updateEvent', [newEl]);
             }
         },
@@ -771,27 +790,24 @@
             return this.each(function () {
                 var $this = $(this),
                     data = $this.data('timeline'),
-                    eventNodes = (new Function('return ' + data.timeline.text()))(),
-                    incrementId = 1,
-                    _ids = [incrementId];
-                // add events
+                    eventNodes = (new Function('return ' + data.timeline.text()))();
+                var lastId = 1;
+                //add event s
                 if (events.length > 0) {
-                    $.each(eventNodes, function (i, evt) {
-                        _ids.push(Number(evt.eventId));
-                    });
-                    incrementId = Math.max.apply(null, _ids) + 1;
                     $.each(events, function (i, evt) {
-                        evt['eventId'] = incrementId;
-                        incrementId++;
+                        var a = eventNodes.filter(t => t.row == events[0].row);
+                        lastId = a[a.length - 1].eventId;
+                        evt['eventId'] = ++lastId;
                         eventNodes.push(evt);
                     });
                     data.timeline.text(JSON.stringify(eventNodes));
                 }
-                placeRowsSignature($this);
+               
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 // Alignment to current node
-                $(this).trigger('align.timeline', ['evt-' + (incrementId - 1), 'fast']);
+                $(this).trigger('align.timeline', ['evt-' + (lastId - 1), 'fast']);
 
                 if (data && typeof callback === 'function') {
                     // console.info( 'Fired "addEvent" method after events addition.' );
@@ -836,7 +852,7 @@
                 }
                 data.timeline.text(JSON.stringify(eventNodes));
 
-                placeRowsSignature($this);
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 if (data && typeof callback === 'function') {
@@ -879,7 +895,7 @@
                     data.timeline.text(JSON.stringify(eventNodes));
                 }
 
-                placeRowsSignature($this);
+                //placeRowsSignature($this);
                 placeEvents($this);
 
                 // Alignment to current node
@@ -1308,7 +1324,7 @@
         var data = $(obj).data('timeline'),
         rowH = Number(data.timeline.attr('row-height')),
         dataEvent = JSON.parse(data.timeline.attr('info'));
-
+        $('.timeline-signature').empty();
         for (var i = 0; i < dataEvent.length; i++) {
             tlNodeElm = $('<div />', {
                 addClass: 'timeline-rows-signature',
@@ -1351,21 +1367,8 @@
                 tlEndDt.setDate(tlEndDt.getDate() + tlRange);
                 break;
         }
-        /*var dataEvent =  JSON.parse(data.timeline.attr('info'));
-        for (var i = 0; i < dataEvent.length; i++) {
-            var events = dataEvent[i].events;
-            for (var j = 0; j < events.length; j++) {
-              eventNodes.push({
-                row: i+1,
-                start: events[j].start,
-                end: events[j].end,
-                label: events[j].content,
-                eventId: Number(i+''+j)
-              });
-            }
-        }*/
-        //$this.find('.timeline-events').empty();
 
+        $this.find('.timeline-events').empty();
 
         eventNodes.forEach(function (evt) {
             if (evt.start) {
