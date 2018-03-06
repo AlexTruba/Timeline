@@ -35,10 +35,10 @@
             }, this);
         }
         getDateStartIsValid(date) {
-            return this.minDateStart == null || this.minDateStart <= date;
+            return (this.minDateStart == null || this.minDateStart <= date) ? date : this.minDateStart;
         }
         getDateEndIsValid(date) {
-            return this.maxDateEnd == null || this.maxDateEnd >= date;
+            return (this.maxDateEnd == null || this.maxDateEnd >= date) ? date : this.maxDateEnd;
         }
     }
 
@@ -135,6 +135,7 @@
     // Constant values
     var pluginName = 'jQuery.Timeline',
         pointMargin = 2,
+        barMargin = 6,
         tlEventAreaH = 0,
         rowH;
 
@@ -778,19 +779,14 @@
                 var selDate = coordinateGridManager.getPositionDateCurrent(e);
                 if (selDate > actionStorage.EndDate) {
                     var date = coordinateGridManager.getPositionDateNext(e);
-                    if (eventDateValidator.getDateEndIsValid(date)) {
-                        actionStorage.NewElement.start = formatDate('Y-m-d G:i', actionStorage.StartDate);
-                        actionStorage.NewElement.end = formatDate('Y-m-d G:i', date);
-                        $(this).timeline('updateEvent', [actionStorage.NewElement]);
-                    }
-
+                    actionStorage.NewElement.start = formatDate('Y-m-d G:i', actionStorage.StartDate);
+                    actionStorage.NewElement.end = formatDate('Y-m-d G:i', eventDateValidator.getDateEndIsValid(date));
+                    $(this).timeline('updateEvent', [actionStorage.NewElement]);
                 } else if (selDate < actionStorage.StartDate) {
                     var date = coordinateGridManager.getPositionDatePrevious(e);
-                    if (eventDateValidator.getDateStartIsValid(date)) {
-                        actionStorage.NewElement.start = formatDate('Y-m-d G:i', date);
-                        actionStorage.NewElement.end = formatDate('Y-m-d G:i', actionStorage.EndDate);
-                        $(this).timeline('updateEvent', [actionStorage.NewElement]);
-                    }
+                    actionStorage.NewElement.start = formatDate('Y-m-d G:i', eventDateValidator.getDateStartIsValid(date));
+                    actionStorage.NewElement.end = formatDate('Y-m-d G:i', actionStorage.EndDate);
+                    $(this).timeline('updateEvent', [actionStorage.NewElement]);
                 }
             }
         },
@@ -1214,8 +1210,7 @@
         }
         tlBody.append(tlWrapper);
         tlFooter.append(tlFooterNav);
-
-        tlTemp.append(tlSign);
+        tlBody.append(tlSign);
         tlTemp.append(tlBody);
         tlTemp.append(tlFooter);
         var dataObj = JSON.parse(data.timeline.attr('info'));
@@ -1279,10 +1274,9 @@
                     $this.find('.timeline-to-next').show();
                 }
         });
-        var magicConstant = 1 + 6; //1px - table bottom border, 6px - margin for event div
         $('.timeline-signature')
-          .css("margin-bottom", ($this.find('.timeline-body').outerHeight() - $this.find('.timeline-wrapper').outerHeight() + magicConstant) + 'px')
-          .css("height", $this.find('.timeline-events').outerHeight() + 'px');;
+          .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
+          .css("height", $this.find('.timeline-events').outerHeight() + 'px');
         return $this;
     }
 
@@ -1511,12 +1505,16 @@
                             });
                         }
                     } else {
+                        var margin = evt.margin ? Number(evt.margin) : barMargin;
+                        margin = margin < 0 ? 0 : margin;
+                        margin = margin > (rowH / 2) ? (rowH / 2) - 1 : margin;
                         // For event view type: bar
                         tlNodeElm = $('<div />', {
                             addClass: 'timeline-node timeline-text-truncate',
                             id: 'evt-' + evt.eventId,
                             css: {
-                                "min-height": 28 + 'px', //doto
+                                margin: margin + 'px 0',
+                                "min-height": rowH - (margin * 2) + 'px', //todo
                                 left: coordinate.x + 'px',
                                 top: coordinate.y + 'px',
                                 width: coordinate.w + 'px'
