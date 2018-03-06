@@ -1275,7 +1275,7 @@
                 }
         });
         $('.timeline-signature')
-          .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
+          // .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
           .css("height", $this.find('.timeline-events').outerHeight() + 'px');
         return $this;
     }
