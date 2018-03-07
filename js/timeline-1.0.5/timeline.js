@@ -26,7 +26,7 @@
                 var dtEnd = new Date(normalizeDate(item.end));
 
                 if ((this.minDateStart == null || this.minDateStart < dtEnd) && obj.start >= dtEnd) {
-                    this.minDateStart = dtEnd
+                    this.minDateStart = dtEnd;
                 }
 
                 if ((this.maxDateEnd == null || this.maxDateEnd > dtStart) && obj.end <= dtStart) {
@@ -279,7 +279,7 @@
                     getBrowserLang(settings.httpLnaguage).always(function (language) {
                         $this[0].lang = language;
                     }).then(function () {
-                        importLocale($this).done(function (locale) {
+                        importLocale($this, function (locale) {
                             $this.data('timeline').timeline.attr('i18n-month', JSON.stringify(locale.month));
                             $this.data('timeline').timeline.attr('i18n-day', JSON.stringify(locale.day));
                             $this.data('timeline').timeline.attr('i18n-ma', JSON.stringify(locale.ma));
@@ -305,24 +305,6 @@
                             // Bind an event after initialized (added v1.0.5)
                             $this.trigger('afterRender.timeline', [options]);
 
-
-                        }).fail(function () {
-
-                            renderTimeline($this);
-
-                            // timeline container sizing
-                            resizeTimeline($this);
-
-                            // do methods.alignment
-                            $this.trigger('align.timeline', [settings.rangeAlign]);
-
-                            $this.css('visibility', 'visible');
-
-                            placeRowsSignature($this);
-                            placeEvents($this);
-
-                            // Bind an event after initialized (added v1.0.5)
-                            $this.trigger('afterRender.timeline', [options]);
 
                         });
                     });
@@ -511,7 +493,7 @@
                 getBrowserLang(data.timeline.attr('http-language')).always(function (language) {
                     $this[0].lang = language;
                 }).then(function () {
-                    importLocale($this).done(function (locale) {
+                    importLocale($this, function (locale) {
                         data.timeline.attr('i18n-month', JSON.stringify(locale.month));
                         data.timeline.attr('i18n-day', JSON.stringify(locale.day));
                         data.timeline.attr('i18n-ma', JSON.stringify(locale.ma));
@@ -524,18 +506,6 @@
                         renderTimeline($this);
                         resizeTimeline($this);
 
-                        placeRowsSignature($this);
-                        placeEvents($this);
-
-                        // do methods.alignment
-                        $this.trigger('align.timeline', [data.timeline.attr('range-align')]);
-
-                        // Bind an event after rendered (added v1.0.5)
-                        $this.trigger('afterRender.timeline', [options]);
-
-                    }).fail(function () {
-                        renderTimeline($this);
-                        resizeTimeline($this);
                         placeRowsSignature($this);
                         placeEvents($this);
 
@@ -2082,21 +2052,48 @@
         return dfd.promise();
     };
 
-    function importLocale(tlObj) {
-        var dfd = $.Deferred(),
-            langDir = tlObj.data('timeline').timeline.attr('langs-dir') || './langs/',
-            loadPath = langDir + tlObj[0].lang + '.json'; // updated from `tlObj[0].lang.toLowerCase()`
-        $.ajax({
-            url: loadPath,
-            type: 'get',
-            dataType: 'json'
-        }).done(function (locale) {
-            dfd.resolve(locale);
-        }).fail(function () {
-            dfd.reject();
-        });
-
-        return dfd.promise();
+    function importLocale(tlObj, callback) {
+        var locale = {
+            "month": {
+                "Jan": "January",
+                "Feb": "February",
+                "Mar": "March",
+                "Apr": "April",
+                "May": "May",
+                "Jun": "June",
+                "Jul": "July",
+                "Aug": "August",
+                "Sep": "September",
+                "Oct": "October",
+                "Nov": "November",
+                "Dec": "December"
+            },
+            "day": {
+                "Sun": "Sunday",
+                "Mon": "Monday",
+                "Tue": "Tuesday",
+                "Wed": "Wednesday",
+                "Thu": "Thurseday",
+                "Fri": "Friday",
+                "Sat": "Saturday"
+            },
+            "ma": [
+              "am",
+              "pm"
+            ],
+            "format": {
+                "full": "j M Y",
+                "year": "Y",
+                "month": "M Y",
+                "day": "D, j M",
+                "years": "Y",
+                "months": "F",
+                "days": "j",
+                "meta": "g:i A, D F j, Y",
+                "metato": ""
+            }
+        };
+        callback(locale);
     }
 
 })(jQuery);
