@@ -265,7 +265,7 @@
     box-shadow:0 10px 6px -6px rgba(51,51,51,.25);
     z-index:99
 }
-.timeline-node.timeline-text-truncate:after {
+.timeline-node.timeline-text-truncate:after{
   content: "\205D";
   font-size: 16px;
   font-weight: bold;
