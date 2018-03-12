@@ -66,7 +66,7 @@
     position:relative;
     display:block;
     visibility:hidden;
-    margin:15px;
+    margin:15px 0px;
     font-size:1rem;
     line-height:1.5
 }
