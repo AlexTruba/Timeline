@@ -44,10 +44,10 @@
     content:"\ed6d"
 }
 .jqtl-circle-right:before{
-    content:"\edee"
+    content:"\021E8"
 }
 .jqtl-circle-left:before{
-    content:"\edf2"
+    content: "\021E6";
 }
 .jqtl-circle-fill-right:before{
     content:"\edf6"
