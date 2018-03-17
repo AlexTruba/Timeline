@@ -1,12 +1,12 @@
 /*!
- * jQuery Timeline Plugin
- * ------------------------
- * Version: 1.0.5
- * Author: Ka2 ( https://ka2.org/ )
- * Repository: https://github.com/ka215/jquery.timeline
- * Lisenced: MIT
- */
-(function ($) {
+     * jQuery Timeline Plugin
+     * ------------------------
+     * Version: 1.0.5
+     * Author: Ka2 ( https://ka2.org/ )
+     * Repository: https://github.com/ka215/jquery.timeline
+     * Lisenced: MIT
+     */
+    (function ($) {
         class EventDateValidator {
             constructor() {
                 this.eventList = null;
@@ -62,7 +62,7 @@
         }
 
         class CoordinateGridManager {
-            constructor(workspace, options, className) {
+            constructor(workspace, options, className, columns) {
                 this.itemClassName = className;
                 this.width = workspace.width();
                 this.height = workspace.height();
@@ -74,6 +74,11 @@
                 this.rowsCount = options.rows;
                 this.columnSize = this.width / this.columnsCount;
                 this.rowSize = this.height / this.rowsCount;
+                var tmpColumnSizeList = [];
+                columns.each(function (index, element) {
+                    tmpColumnSizeList.push($(element).outerWidth());
+                });
+                this.columnSizeList = tmpColumnSizeList;
             }
 
             getStartDate(options) {
@@ -135,13 +140,17 @@
             }
 
             getPositionDateNext(e) {
-                var date = new Date(this.startDate.getTime() + this.getPositionColumnNumber(e) * this.columnSize * this.pxTimeRate);
+                var colNum = this.getPositionColumnNumber(e);
+                var date = new Date(this.startDate.getTime() + colNum * this.columnSizeList[colNum - 1] * this.pxTimeRate);
+                date.setSeconds(0);
                 date.setMilliseconds(0);
                 return date;
             }
 
             getPositionDatePrevious(e) {
-                var date = new Date(this.startDate.getTime() + (this.getPositionColumnNumber(e) - 1) * this.columnSize * this.pxTimeRate);
+                var colNum = this.getPositionColumnNumber(e);
+                var date = new Date(this.startDate.getTime() + (colNum - 1) * this.columnSizeList[colNum - 1] * this.pxTimeRate);
+                date.setSeconds(0);
                 date.setMilliseconds(0);
                 return date;
             }
@@ -741,7 +750,7 @@
                 var $this = $(this);
                 var options = methods.getOptions.call(this);
                 var timelineEvents = $(this).find('.timeline-events');
-                coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node');
+                coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node', $(this).find('.timeline-grids td'));
                 actionStorage = new ActionStorage();
                 eventDateValidator = new EventDateValidator();
                 /* ****************************** */
