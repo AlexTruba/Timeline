@@ -211,6 +211,7 @@
                         "zerofill-year": settings.zerofillYear ? 1 : 0,
                         "range": settings.range,
                         "rows": settings.info.length, // use rows such info lenght
+                        "show-rows": settings.rows, // use rows such info lenght
                         "row-height": settings.rowHeight,
                         "timeline-height": settings.height,
                         "min-grid-per": settings.minGridPer,
@@ -734,6 +735,7 @@
             $(this).off('afterRender.timeline');
             var $this = $(this);
             var options = methods.getOptions.call(this);
+            methods.setupScroll();
             var timelineEvents = $(this).find('.timeline-events');
             coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node');
             actionStorage = new ActionStorage();
@@ -748,6 +750,14 @@
             });
             timelineEvents.on("mouseup", function (e) {
                 methods.onMouseup.call($this, e);
+            });
+        },
+        setupScroll: function() {
+             $('.timeline-body').scroll(function(e){
+                $('.timeline-scale').css('top', $(this).get(0).scrollTop);
+                $('.left-top-header').css('top', $(this).get(0).scrollTop);
+                $('.left-top-header').css('left', $(this).get(0).scrollLeft);
+                $(".timeline-signature").css('left', $(this).get(0).scrollLeft);
             });
         },
         onMousedown: function (e) {
@@ -986,13 +996,14 @@
             tlTemp = $('<div />', { addClass: "timeline-template" }),
             tlSign = $('<div />', { addClass: "timeline-signature" }),
             tlBody = $('<div />', { addClass: "timeline-body" }),
-            tlFooter = $('<div />', { addClass: "timeline-footer" }),
             tlWrapper = $('<div />', { addClass: "timeline-wrapper" }),
             tlScale = $('<table />', { addClass: "timeline-timetable timeline-scale" }),
             tlEvents = $('<div />', { addClass: "timeline-events" }),
             tlGrids = $('<table />', { addClass: "timeline-timetable timeline-grids" }),
             tlPointer = $('<div />', { addClass: "timeline-needle-pointer" }),
             dfEvents = $('<div />', { addClass: "timeline-events default-events" }),
+            leftTopHeader = $('<div />', { addClass: "left-top-header" }),
+            timelineleftHeader = $('<div />', { addClass: "timeline-left__header" }),
             endDt = new Date(startDt),
             scaleSet = {
                 years: {
@@ -1208,11 +1219,12 @@
         } else {
             tlWrapper.append(tlScale.prop('outerHTML') + tlEvents.prop('outerHTML') + tlGrids.prop('outerHTML') + tlPointer.prop('outerHTML'));
         }
+        timelineleftHeader.append(leftTopHeader);
+        timelineleftHeader.append(tlSign);
         tlBody.append(tlWrapper);
-        tlFooter.append(tlFooterNav);
-        tlBody.append(tlSign);
+        tlBody.append(timelineleftHeader);
         tlTemp.append(tlBody);
-        tlTemp.append(tlFooter);
+        tlTemp.append(tlFooterNav);
         var dataObj = JSON.parse(data.timeline.attr('info'));
         if (dataObj.filter(t => !t.Name || !(t.Name.length === 0))) {
             tlTemp.addClass('with-signature');
@@ -1230,7 +1242,6 @@
         // Resizing timeline view
         var $this = $(obj),
             data = $this.data('timeline');
-
         if (data.timeline.attr('timeline-height') === "auto" || typeof data.timeline.attr('timeline-height') !== "number") {
             // tlEventAreaH = Number( data.timeline.attr('rows') ) * rowH;
             tlEventAreaH = Number(data.timeline.attr('rows')) * Number(data.timeline.attr('row-height'));
@@ -1241,6 +1252,10 @@
             width: $this.find('.timeline-timetable.timeline-scale').outerWidth(),
             height: 63 // $this.find('.timeline-timetable.timeline-scale').outerHeight() : it's impossible to obtain an accurate value with this, but OK if it uses bootstrap! (Why!?)
         };
+        var bodyHeight =  Number(data.timeline.attr('show-rows')) * Number(data.timeline.attr('row-height')) + timetableSize.height;
+        obj.find('.timeline-body').css('height', bodyHeight+6 + 'px');
+        obj.find('.left-top-header').css('height', timetableSize.height + 'px');
+
         if ($this.find('.timeline-wrapper')[0].offsetHeight != timetableSize.height + tlEventAreaH) {
             $this.find('.timeline-wrapper').css('height', (timetableSize.height + tlEventAreaH) + 'px');
             $this.find('.timeline-events').css('height', tlEventAreaH + 'px');

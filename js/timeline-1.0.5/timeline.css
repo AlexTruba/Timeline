@@ -452,8 +452,10 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
 }
 /* Add rows signature */
 .with-signature{
-    text-align: right;
+    text-align: left;
     position: relative;
+    display: inline-block;
+    max-width: 100%;
 }
 .with-signature .timeline-signature {
     width: 150px;
@@ -462,9 +464,7 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
     left: 0;
 }
 .with-signature .timeline-body {
-    width: calc(100% - 450px);
     display: flex;
-    height: 463px;
     overflow-y: auto;
     /* padding-right: 15px; */
 }
@@ -517,7 +517,6 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
     position: relative;
     z-index: 51;
     background-color: white;
-    height: 53px;
 }
 .timeline-left__header{
     order: -1;
