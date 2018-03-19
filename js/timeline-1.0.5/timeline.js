@@ -281,7 +281,6 @@
                         methods.onAfterRender.call(this);
                     });
 
-
                     // If uninitialized yet
                     if (!data) {
 
@@ -1295,8 +1294,11 @@
             $this.find('.timeline-to-prev').css('top', navPosition + 'px');
             $this.find('.timeline-to-next').css('top', navPosition + 'px');
 
+            $this.find('.timeline-to-prev').css('display', 'none');
+            $this.find('.timeline-to-next').css('display', 'none');
+
             // Set event of scrolling timeline
-            $this.find('.timeline-body').scroll(function () {
+            /*$this.find('.timeline-body').scroll(function () {
                 var currentScrollLeft = $(this).scrollLeft();
                 if (currentScrollLeft < 1) {
                     // Terminated Left
@@ -1308,7 +1310,7 @@
                     $this.find('.timeline-to-prev').show();
                     $this.find('.timeline-to-next').show();
                 }
-            });
+            });*/
             $('.timeline-signature')
                 .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
                 .css("height", $this.find('.timeline-events').outerHeight() + 'px');
