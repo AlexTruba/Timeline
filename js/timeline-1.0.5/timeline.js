@@ -1,5 +1,4 @@
-/*!
- * jQuery Timeline Plugin
+/* jQuery Timeline Plugin
  * ------------------------
  * Version: 1.0.5
  * Author: Ka2 ( https://ka2.org/ )
@@ -17,16 +16,33 @@
         setEventList(events, rowNumber, obj) {
             this.minDateStart = null;
             this.maxDateEnd = null;
-            this.eventList = events.filter(item=>item.row == rowNumber);
+            this.eventList = events.filter(item => item.row === rowNumber);
             this.initializeLimits(this.eventList, obj);
+            return (this.maxDateEnd == null || this.maxDateEnd >= obj.end) && (this.minDateStart == null || this.minDateStart <= obj.start);
         }
+
         initializeLimits(list, obj) {
             list.forEach(function (item) {
                 var dtStart = new Date(normalizeDate(item.start));
                 var dtEnd = new Date(normalizeDate(item.end));
 
+                if ((this.minDateStart == null || this.minDateStart < dtEnd) && obj.selectedDate >= dtEnd) {
+                    this.minDateStart = dtEnd;
+                }
+
+                if ((this.maxDateEnd == null || this.maxDateEnd > dtStart) && obj.selectedDate <= dtStart) {
+                    this.maxDateEnd = dtStart;
+                }
+            }, this);
+        }
+
+        initializeLimitsOld(list, obj) {
+            list.forEach(function (item) {
+                var dtStart = new Date(normalizeDate(item.start));
+                var dtEnd = new Date(normalizeDate(item.end));
+
                 if ((this.minDateStart == null || this.minDateStart < dtEnd) && obj.start >= dtEnd) {
-                    this.minDateStart = dtEnd
+                    this.minDateStart = dtEnd;
                 }
 
                 if ((this.maxDateEnd == null || this.maxDateEnd > dtStart) && obj.end <= dtStart) {
@@ -34,16 +50,18 @@
                 }
             }, this);
         }
+
         getDateStartIsValid(date) {
             return (this.minDateStart == null || this.minDateStart <= date) ? date : this.minDateStart;
         }
+
         getDateEndIsValid(date) {
             return (this.maxDateEnd == null || this.maxDateEnd >= date) ? date : this.maxDateEnd;
         }
     }
 
     class CoordinateGridManager {
-        constructor(workspace, options, className) {
+        constructor(workspace, options, className, columns) {
             this.itemClassName = className;
             this.width = workspace.width();
             this.height = workspace.height();
@@ -55,25 +73,37 @@
             this.rowsCount = options.rows;
             this.columnSize = this.width / this.columnsCount;
             this.rowSize = this.height / this.rowsCount;
+            var tmpColumnSizeList = [];
+            columns.each(function (index, element) {
+                tmpColumnSizeList.push($(element).outerWidth());
+            });
+            this.columnSizeList = tmpColumnSizeList;
         }
 
         getStartDate(options) {
             return new Date(normalizeDate(options.startDatetime));
         }
+
         getEndDate(options, startDate) {
             switch (options.scale) {
-                case 'years': return new Date(startDate.getFullYear() + options.range, startDate.getMonth(), startDate.getDate());
-                case 'months': return new Date(startDate.getFullYear(), startDate.getMonth() + options.range, startDate.getDate());
-                default: return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + options.range);
+                case 'years':
+                    return new Date(startDate.getFullYear() + options.range, startDate.getMonth(), startDate.getDate());
+                case 'months':
+                    return new Date(startDate.getFullYear(), startDate.getMonth() + options.range, startDate.getDate());
+                default:
+                    return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + options.range);
             }
         }
+
         getColumnsCount(options) {
             switch (options.scale) {
                 case 'years': //todo
                 case 'months': //todo
-                default: return 24 * options.minGridPer * options.range;
+                default:
+                    return 24 * options.minGridPer * options.range;
             }
         }
+
         getX(e) {
             var jTargetElement = $(e.target);
             if (jTargetElement.hasClass(this.itemClassName)) {
@@ -84,6 +114,7 @@
                 return e.offsetX;
             }
         }
+
         getY(e) {
             var jTargetElement = $(e.target);
             if (jTargetElement.hasClass(this.itemClassName)) {
@@ -94,22 +125,31 @@
                 return e.offsetY;
             }
         }
+
         getPositionColumnNumber(e) {
             return Math.ceil(this.getX(e) / this.columnSize);
         }
+
         getPositionRowNumber(e) {
             return Math.ceil(this.getY(e) / this.rowSize);
         }
+
         getPositionDateCurrent(e) {
             return new Date(this.startDate.getTime() + this.getX(e) * this.pxTimeRate);
         }
+
         getPositionDateNext(e) {
-            var date = new Date(this.startDate.getTime() + this.getPositionColumnNumber(e) * this.columnSize * this.pxTimeRate);
+            var colNum = this.getPositionColumnNumber(e);
+            var date = new Date(this.startDate.getTime() + colNum * this.columnSizeList[colNum - 1] * this.pxTimeRate);
+            date.setSeconds(0);
             date.setMilliseconds(0);
             return date;
         }
+
         getPositionDatePrevious(e) {
-            var date = new Date(this.startDate.getTime() + (this.getPositionColumnNumber(e) - 1) * this.columnSize * this.pxTimeRate);
+            var colNum = this.getPositionColumnNumber(e);
+            var date = new Date(this.startDate.getTime() + (colNum - 1) * this.columnSizeList[colNum - 1] * this.pxTimeRate);
+            date.setSeconds(0);
             date.setMilliseconds(0);
             return date;
         }
@@ -182,7 +222,8 @@
                 i18n: {},
                 langsDir: "./langs/",
                 httpLnaguage: false,
-                onCreateEvent: function () { }
+                onCreateEvent: function () {
+                }
             }, options);
 
             // initialize plugin
@@ -233,10 +274,12 @@
                 $this.on('click.timeline', '.timeline-to-next', methods.dateforth);
                 $this.on('click.timeline', '.timeline-node', methods.openEvent);
                 $this.on('align.timeline', methods.alignment);
+                $this.on('onAfterUpdate.timeline', function (xEvent, actionStorage) {
+                    methods.onAfterUpdate.call(this, settings.onAfterUpdate, actionStorage);
+                });
                 $this.on('afterRender.timeline', function () {
                     methods.onAfterRender.call(this);
                 });
-
 
                 // If uninitialized yet
                 if (!data) {
@@ -280,7 +323,7 @@
                     getBrowserLang(settings.httpLnaguage).always(function (language) {
                         $this[0].lang = language;
                     }).then(function () {
-                        importLocale($this).done(function (locale) {
+                        importLocale($this, function (locale) {
                             $this.data('timeline').timeline.attr('i18n-month', JSON.stringify(locale.month));
                             $this.data('timeline').timeline.attr('i18n-day', JSON.stringify(locale.day));
                             $this.data('timeline').timeline.attr('i18n-ma', JSON.stringify(locale.ma));
@@ -307,38 +350,20 @@
                             $this.trigger('afterRender.timeline', [options]);
 
 
-                        }).fail(function () {
-
-                            renderTimeline($this);
-
-                            // timeline container sizing
-                            resizeTimeline($this);
-
-                            // do methods.alignment
-                            $this.trigger('align.timeline', [settings.rangeAlign]);
-
-                            $this.css('visibility', 'visible');
-
-                            placeRowsSignature($this);
-                            placeEvents($this);
-
-                            // Bind an event after initialized (added v1.0.5)
-                            $this.trigger('afterRender.timeline', [options]);
-
                         });
                     });
                 } else {
 
                     /* Debugging code for loading effect:
-                    var wait = 0,
-                        sleep = setInterval(function() {
-                          wait++;
-                          if ( wait == 1 ) {
-                            placeEvents( $this );
-                            clearInterval( sleep );
-                          }
-                        }, 300);
-                    */
+                     var wait = 0,
+                     sleep = setInterval(function() {
+                     wait++;
+                     if ( wait == 1 ) {
+                     placeEvents( $this );
+                     clearInterval( sleep );
+                     }
+                     }, 300);
+                     */
 
                     placeRowsSignature($this);
                     placeEvents($this);
@@ -350,7 +375,7 @@
         initialized: function (callback) {
             return this.each(function () {
                 var $this = $(this),
-                  data = $this.data('timeline');
+                    data = $this.data('timeline');
 
                 if (data && typeof callback === 'function') {
                     // console.info( 'Fired "initialized" method after initialize this plugin.' );
@@ -362,7 +387,7 @@
             // destroy object
             return this.each(function () {
                 var $this = $(this),
-                  data = $this.data('timeline');
+                    data = $this.data('timeline');
 
                 $(window).off('.timeline');
                 if (data) {
@@ -512,7 +537,7 @@
                 getBrowserLang(data.timeline.attr('http-language')).always(function (language) {
                     $this[0].lang = language;
                 }).then(function () {
-                    importLocale($this).done(function (locale) {
+                    importLocale($this, function (locale) {
                         data.timeline.attr('i18n-month', JSON.stringify(locale.month));
                         data.timeline.attr('i18n-day', JSON.stringify(locale.day));
                         data.timeline.attr('i18n-ma', JSON.stringify(locale.ma));
@@ -525,18 +550,6 @@
                         renderTimeline($this);
                         resizeTimeline($this);
 
-                        placeRowsSignature($this);
-                        placeEvents($this);
-
-                        // do methods.alignment
-                        $this.trigger('align.timeline', [data.timeline.attr('range-align')]);
-
-                        // Bind an event after rendered (added v1.0.5)
-                        $this.trigger('afterRender.timeline', [options]);
-
-                    }).fail(function () {
-                        renderTimeline($this);
-                        resizeTimeline($this);
                         placeRowsSignature($this);
                         placeEvents($this);
 
@@ -576,7 +589,7 @@
                     mov = currentTimelinePos - ((fullTimelineWidth - visibleTimelineWidth) / Number(data.timeline.attr('range')));
                 }
                 mov = mov < 0 ? 0 : mov;
-                $root.find('.timeline-body').animate({ scrollLeft: mov }, 300);
+                $root.find('.timeline-body').animate({scrollLeft: mov}, 300);
             }
             return this;
         },
@@ -596,7 +609,7 @@
                     mov = currentTimelinePos + ((fullTimelineWidth - visibleTimelineWidth) / Number(data.timeline.attr('range')));
                 }
                 mov = mov > (fullTimelineWidth - visibleTimelineWidth + 1) ? fullTimelineWidth - visibleTimelineWidth + 1 : mov;
-                $root.find('.timeline-body').animate({ scrollLeft: mov }, 300);
+                $root.find('.timeline-body').animate({scrollLeft: mov}, 300);
             }
             return this;
         },
@@ -656,7 +669,7 @@
                             }
                         });
                         latestDt = new Date(normalizeDate(eventNodes[latestKey].start)),
-                        posX = getAbscissa(latestDt, data);
+                            posX = getAbscissa(latestDt, data);
                         if (posX > -1) {
                             if ((posX - visibleTimelineWidth / 2) > (fullTimelineWidth - visibleTimelineWidth + 1)) {
                                 mov = fullTimelineWidth - visibleTimelineWidth + 1;
@@ -682,7 +695,7 @@
                         break;
                 }
                 if ($.inArray(animateSpeed, ["slow", 'normal', 'fast']) != -1 || Number(animateSpeed) > 0) {
-                    $(this).find('.timeline-body').animate({ scrollLeft: mov }, animateSpeed);
+                    $(this).find('.timeline-body').animate({scrollLeft: mov}, animateSpeed);
                 } else {
                     $(this).find('.timeline-body').scrollLeft(mov);
                 }
@@ -737,7 +750,7 @@
             var options = methods.getOptions.call(this);
             methods.setupScroll();
             var timelineEvents = $(this).find('.timeline-events');
-            coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node');
+            coordinateGridManager = new CoordinateGridManager($(this).find('.timeline-events'), options, 'timeline-node', $(this).find('.timeline-grids td'));
             actionStorage = new ActionStorage();
             eventDateValidator = new EventDateValidator();
             /* ****************************** */
@@ -752,8 +765,8 @@
                 methods.onMouseup.call($this, e);
             });
         },
-        setupScroll: function() {
-             $('.timeline-body').scroll(function(e){
+        setupScroll: function () {
+            $('.timeline-body').scroll(function (e) {
                 $('.timeline-scale').css('top', $(this).get(0).scrollTop);
                 $('.left-top-header').css('top', $(this).get(0).scrollTop);
                 $('.left-top-header').css('left', $(this).get(0).scrollLeft);
@@ -768,20 +781,26 @@
                     $(this).timeline('removeEvent', [actionStorage.NewElement.eventId]);
                     actionStorage.clear();
                 }
-                actionStorage.StartDate = coordinateGridManager.getPositionDatePrevious(e);
-                actionStorage.EndDate = coordinateGridManager.getPositionDateNext(e);
-                actionStorage.NewElement = {
-                    label: '',
-                    bgColor: '#E5E5E5',
-                    start: formatDate('Y-m-d G:i', actionStorage.StartDate),
-                    end: formatDate('Y-m-d G:i', actionStorage.EndDate),
-                    row: coordinateGridManager.getPositionRowNumber(e)
-                };
-                eventDateValidator.setEventList($(this).timeline('getOptions').events, coordinateGridManager.getPositionRowNumber(e), {
-                    start: actionStorage.StartDate,
-                    end: actionStorage.EndDate
-                });
-                $(this).timeline('addEvent', [actionStorage.NewElement]);
+
+                var isAvailable = eventDateValidator.setEventList($(this).timeline('getOptions').events, coordinateGridManager.getPositionRowNumber(e), {
+                        selectedDate: coordinateGridManager.getPositionDateCurrent(e),
+                        start: coordinateGridManager.getPositionDatePrevious(e),
+                        end: coordinateGridManager.getPositionDateNext(e)
+                    }
+                );
+
+                if (isAvailable) {
+                    actionStorage.StartDate = eventDateValidator.getDateStartIsValid(coordinateGridManager.getPositionDatePrevious(e));
+                    actionStorage.EndDate = eventDateValidator.getDateEndIsValid(coordinateGridManager.getPositionDateNext(e));
+                    actionStorage.NewElement = {
+                        label: '',
+                        bgColor: '#E5E5E5',
+                        start: formatDate('Y-m-d G:i', actionStorage.StartDate),
+                        end: formatDate('Y-m-d G:i', actionStorage.EndDate),
+                        row: coordinateGridManager.getPositionRowNumber(e)
+                    };
+                    $(this).timeline('addEvent', [actionStorage.NewElement]);
+                }
             }
         },
         onMousemove: function (e) {
@@ -791,13 +810,15 @@
                     var date = coordinateGridManager.getPositionDateNext(e);
                     actionStorage.NewElement.start = formatDate('Y-m-d G:i', actionStorage.StartDate);
                     actionStorage.NewElement.end = formatDate('Y-m-d G:i', eventDateValidator.getDateEndIsValid(date));
-                    $(this).timeline('updateEvent', [actionStorage.NewElement]);
                 } else if (selDate < actionStorage.StartDate) {
                     var date = coordinateGridManager.getPositionDatePrevious(e);
                     actionStorage.NewElement.start = formatDate('Y-m-d G:i', eventDateValidator.getDateStartIsValid(date));
                     actionStorage.NewElement.end = formatDate('Y-m-d G:i', actionStorage.EndDate);
-                    $(this).timeline('updateEvent', [actionStorage.NewElement]);
+                } else {
+                    actionStorage.NewElement.start = formatDate('Y-m-d G:i', actionStorage.StartDate);
+                    actionStorage.NewElement.end = formatDate('Y-m-d G:i', actionStorage.EndDate);
                 }
+                $(this).timeline('updateEvent', [actionStorage.NewElement]);
             }
         },
         onMouseup: function (e) {
@@ -833,24 +854,32 @@
                 }
             });
         },
+        onAfterUpdate: function (callback, actionStorage) {
+            var data = {
+                start: new Date(normalizeDate(actionStorage.NewElement.start)),
+                end: new Date(normalizeDate(actionStorage.NewElement.end))
+            };
+            if (typeof callback === 'function') {
+                callback(data);
+            }
+        },
         removeEvent: function () { // arguments is optional
             var eventIds, callback;
             if (arguments.length == 0) {
                 eventIds = 'all';
                 callback = null;
-            } else
-                if (arguments.length == 1) {
-                    if (typeof arguments[0] === 'function') {
-                        eventIds = 'all';
-                        callback = arguments[0];
-                    } else {
-                        eventIds = arguments[0];
-                        callback = null;
-                    }
+            } else if (arguments.length == 1) {
+                if (typeof arguments[0] === 'function') {
+                    eventIds = 'all';
+                    callback = arguments[0];
                 } else {
                     eventIds = arguments[0];
-                    callback = arguments[1];
+                    callback = null;
                 }
+            } else {
+                eventIds = arguments[0];
+                callback = arguments[1];
+            }
             return this.each(function () {
                 var $this = $(this),
                     data = $this.data('timeline'),
@@ -878,6 +907,15 @@
                     callback($this, data);
                 }
             });
+        },
+        updateTmpEvent: function (data) {
+            if (data.start) {
+                actionStorage.NewElement.start = formatDate('Y-m-d G:i', eventDateValidator.getDateStartIsValid(data.start));
+            }
+            if (data.end) {
+                actionStorage.NewElement.end = formatDate('Y-m-d G:i', eventDateValidator.getDateEndIsValid(data.end));
+            }
+            $(this).timeline('updateEvent', [actionStorage.NewElement]);
         },
         updateEvent: function (events, callback) {
             if (typeof events === 'undefined') {
@@ -918,7 +956,7 @@
 
                 // Alignment to current node
                 $(this).trigger('align.timeline', ['evt-' + lastUpdated, 'fast']);
-
+                $(this).trigger('onAfterUpdate.timeline', [actionStorage]);
                 if (data && typeof callback === 'function') {
                     // console.info( 'Fired "updateEvent" method after events updating.' );
                     callback($this, data);
@@ -934,7 +972,10 @@
             return $(currentTimeline).each(function () {
                 var data = $(this).data('timeline'),
                     eventNodes = (new Function('return ' + data.timeline.text()))(),
-                    metaFormat = { start: data.timeline.attr('datetime-format-meta'), end: data.timeline.attr('datetime-format-metato') },
+                    metaFormat = {
+                        start: data.timeline.attr('datetime-format-meta'),
+                        end: data.timeline.attr('datetime-format-metato')
+                    },
                     eventData;
                 $.each(eventNodes, function (i, evt) {
                     if (evt.eventId == eventId) {
@@ -969,12 +1010,11 @@
         // Dispatcher of Plugin
         if (methods[method]) {
             return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
-        } else
-            if (typeof method === 'object' || !method) {
-                return methods.init.apply(this, arguments);
-            } else {
-                $.error('Method ' + method + ' does not exist on jQuery.timeline.');
-            }
+        } else if (typeof method === 'object' || !method) {
+            return methods.init.apply(this, arguments);
+        } else {
+            $.error('Method ' + method + ' does not exist on jQuery.timeline.');
+        }
 
     };
 
@@ -992,18 +1032,18 @@
             startDt.setFullYear(Number(_tmp[0]));
         }
 
-        var tlHeader = $('<div />', { addClass: "timeline-header" }),
-            tlTemp = $('<div />', { addClass: "timeline-template" }),
-            tlSign = $('<div />', { addClass: "timeline-signature" }),
-            tlBody = $('<div />', { addClass: "timeline-body" }),
-            tlWrapper = $('<div />', { addClass: "timeline-wrapper" }),
-            tlScale = $('<table />', { addClass: "timeline-timetable timeline-scale" }),
-            tlEvents = $('<div />', { addClass: "timeline-events" }),
-            tlGrids = $('<table />', { addClass: "timeline-timetable timeline-grids" }),
-            tlPointer = $('<div />', { addClass: "timeline-needle-pointer" }),
-            dfEvents = $('<div />', { addClass: "timeline-events default-events" }),
-            leftTopHeader = $('<div />', { addClass: "left-top-header" }),
-            timelineleftHeader = $('<div />', { addClass: "timeline-left__header" }),
+        var tlHeader = $('<div />', {addClass: "timeline-header"}),
+            tlTemp = $('<div />', {addClass: "timeline-template"}),
+            tlSign = $('<div />', {addClass: "timeline-signature"}),
+            tlBody = $('<div />', {addClass: "timeline-body"}),
+            tlWrapper = $('<div />', {addClass: "timeline-wrapper"}),
+            tlScale = $('<table />', {addClass: "timeline-timetable timeline-scale"}),
+            tlEvents = $('<div />', {addClass: "timeline-events"}),
+            tlGrids = $('<table />', {addClass: "timeline-timetable timeline-grids"}),
+            tlPointer = $('<div />', {addClass: "timeline-needle-pointer"}),
+            dfEvents = $('<div />', {addClass: "timeline-events default-events"}),
+            leftTopHeader = $('<div />', {addClass: "left-top-header"}),
+            timelineleftHeader = $('<div />', {addClass: "timeline-left__header"}),
             endDt = new Date(startDt),
             scaleSet = {
                 years: {
@@ -1039,7 +1079,7 @@
         defaultEvents(dfEvents, data);
 
         if (data.timeline.attr('type') === 'point' || data.timeline.attr('type') === 'mixed') {
-            var tlLineCanvas = $('<canvas />', { addClass: "timeline-line-canvas" });
+            var tlLineCanvas = $('<canvas />', {addClass: "timeline-line-canvas"});
         }
         $this.empty();
 
@@ -1048,24 +1088,23 @@
             endDt.setFullYear(endDt.getFullYear() + Number(data.timeline.attr('range')));
             _tmpDt = endDt.getTime();
             endDt.setTime(_tmpDt - 1);
-        } else
-            if (data.timeline.attr('scale') === 'months') {
-                endDt.setMonth(endDt.getMonth() + Number(data.timeline.attr('range')));
-                _tmpDt = endDt.getTime();
-                endDt.setTime(_tmpDt - 1);
-            } else {
-                endDt.setDate(endDt.getDate() + Number(data.timeline.attr('range')));
-                _tmpDt = endDt.getTime();
-                endDt.setTime(_tmpDt - 1);
-            }
+        } else if (data.timeline.attr('scale') === 'months') {
+            endDt.setMonth(endDt.getMonth() + Number(data.timeline.attr('range')));
+            _tmpDt = endDt.getTime();
+            endDt.setTime(_tmpDt - 1);
+        } else {
+            endDt.setDate(endDt.getDate() + Number(data.timeline.attr('range')));
+            _tmpDt = endDt.getTime();
+            endDt.setTime(_tmpDt - 1);
+        }
 
         // Set scaleMediumCols
         if (midScale === 'days' && Number(data.timeline.attr('range')) > 1) {
-            for (i = 1; i < Number(data.timeline.attr('range')) ; i++) {
+            for (i = 1; i < Number(data.timeline.attr('range')); i++) {
                 scaleMediumCols.push(new Date(startDt.getFullYear(), startDt.getMonth() + 1 + i, 0).getDate());
             }
         } else {
-            for (i = 1; i < Number(data.timeline.attr('range')) ; i++) {
+            for (i = 1; i < Number(data.timeline.attr('range')); i++) {
                 scaleMediumCols.push(scaleSet[topScale]['medium_cols']);
             }
         }
@@ -1079,16 +1118,14 @@
                     if (data.timeline.attr('zerofill-year') == 1) {
                         if (startDt.getFullYear() < 100) {
                             zf = '00';
-                        } else
-                            if (startDt.getFullYear() < 1000) {
-                                zf = '0';
-                            }
+                        } else if (startDt.getFullYear() < 1000) {
+                            zf = '0';
+                        }
                         if (endDt.getFullYear() < 100) {
                             zt = '00';
-                        } else
-                            if (endDt.getFullYear() < 1000) {
-                                zt = '0';
-                            }
+                        } else if (endDt.getFullYear() < 1000) {
+                            zt = '0';
+                        }
                     }
                     fromDate = data.timeline.attr('datetime-prefix') + zf + formatDate(data.timeline.attr('datetime-format-year'), startDt);
                     toDate = data.timeline.attr('datetime-prefix') + zt + formatDate(data.timeline.attr('datetime-format-year'), endDt);
@@ -1117,7 +1154,7 @@
         data.timeline.attr('total-cols', scaleSmallCols);
 
         // Row of top level time scale
-        for (i = 0; i < Number(data.timeline.attr('range')) ; i++) {
+        for (i = 0; i < Number(data.timeline.attr('range')); i++) {
             topLevelRow += '<th colspan="' + (scaleMediumCols[i] * scaleSet[topScale]['small_cols']) + '" class="scale-major scale-' + topScale + '">';
             tmpDate = new Date(startDt);
             switch (topScale) {
@@ -1127,10 +1164,9 @@
                     if (data.timeline.attr('zerofill-year') == 1) {
                         if (tmpDate.getFullYear() < 100) {
                             zf = '00';
-                        } else
-                            if (tmpDate.getFullYear() < 1000) {
-                                zf = '0';
-                            }
+                        } else if (tmpDate.getFullYear() < 1000) {
+                            zf = '0';
+                        }
                     }
                     label = zf + formatDate(data.timeline.attr('datetime-format-years'), tmpDate);
                     break;
@@ -1148,7 +1184,7 @@
         topLevelRow += '</tr>';
 
         // Row of medium level time scale
-        for (i = 0; i < array_sum(scaleMediumCols) ; i++) {
+        for (i = 0; i < array_sum(scaleMediumCols); i++) {
             tmpDate = new Date(startDt);
             switch (midScale) {
                 case 'months':
@@ -1198,7 +1234,7 @@
         }
 
         // Create Timeline loader & Timeline Events
-        var tlLoader = $('<div />', { addClass: "timeline-loader", css: { display: 'block' } });
+        var tlLoader = $('<div />', {addClass: "timeline-loader", css: {display: 'block'}});
         tlLoader.append('<i class="jqtl-spinner"></i><span class="sr-only">Loading...</span>');
 
         // Create Timeline footer
@@ -1242,6 +1278,7 @@
         // Resizing timeline view
         var $this = $(obj),
             data = $this.data('timeline');
+
         if (data.timeline.attr('timeline-height') === "auto" || typeof data.timeline.attr('timeline-height') !== "number") {
             // tlEventAreaH = Number( data.timeline.attr('rows') ) * rowH;
             tlEventAreaH = Number(data.timeline.attr('rows')) * Number(data.timeline.attr('row-height'));
@@ -1252,8 +1289,8 @@
             width: $this.find('.timeline-timetable.timeline-scale').outerWidth(),
             height: 63 // $this.find('.timeline-timetable.timeline-scale').outerHeight() : it's impossible to obtain an accurate value with this, but OK if it uses bootstrap! (Why!?)
         };
-        var bodyHeight =  Number(data.timeline.attr('show-rows')) * Number(data.timeline.attr('row-height')) + timetableSize.height;
-        obj.find('.timeline-body').css('height', bodyHeight+6 + 'px');
+        var bodyHeight = Number(data.timeline.attr('show-rows')) * Number(data.timeline.attr('row-height')) + timetableSize.height;
+        obj.find('.timeline-body').css('height', bodyHeight + 6 + 'px');
         obj.find('.left-top-header').css('height', timetableSize.height + 'px');
 
         if ($this.find('.timeline-wrapper')[0].offsetHeight != timetableSize.height + tlEventAreaH) {
@@ -1274,24 +1311,26 @@
         $this.find('.timeline-to-prev').css('top', navPosition + 'px');
         $this.find('.timeline-to-next').css('top', navPosition + 'px');
 
+        $this.find('.timeline-to-prev').css('display', 'none');
+        $this.find('.timeline-to-next').css('display', 'none');
+
         // Set event of scrolling timeline
-        $this.find('.timeline-body').scroll(function () {
-            var currentScrollLeft = $(this).scrollLeft();
-            if (currentScrollLeft < 1) {
-                // Terminated Left
-                $this.find('.timeline-to-prev').hide();
-            } else
-                if (currentScrollLeft >= (timetableSize.width - $(this).outerWidth() - 2)) {
-                    // Terminated Right
-                    $this.find('.timeline-to-next').hide();
-                } else {
-                    $this.find('.timeline-to-prev').show();
-                    $this.find('.timeline-to-next').show();
-                }
-        });
+        /*$this.find('.timeline-body').scroll(function () {
+         var currentScrollLeft = $(this).scrollLeft();
+         if (currentScrollLeft < 1) {
+         // Terminated Left
+         $this.find('.timeline-to-prev').hide();
+         } else if (currentScrollLeft >= (timetableSize.width - $(this).outerWidth() - 2)) {
+         // Terminated Right
+         $this.find('.timeline-to-next').hide();
+         } else {
+         $this.find('.timeline-to-prev').show();
+         $this.find('.timeline-to-next').show();
+         }
+         });*/
         $('.timeline-signature')
-          // .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
-          .css("height", $this.find('.timeline-events').outerHeight() + 'px');
+        // .css("margin-top", ($this.find('.timeline-scale').outerHeight() + 'px'))
+            .css("height", $this.find('.timeline-events').outerHeight() + 'px');
         return $this;
     }
 
@@ -1341,10 +1380,11 @@
         }
         return data;
     }
+
     function placeRowsSignature(obj) {
         var data = $(obj).data('timeline'),
-        rowH = Number(data.timeline.attr('row-height')),
-        dataEvent = JSON.parse(data.timeline.attr('info'));
+            rowH = Number(data.timeline.attr('row-height')),
+            dataEvent = JSON.parse(data.timeline.attr('info'));
         $('.timeline-signature').empty();
         for (var i = 0; i < dataEvent.length; i++) {
             tlNodeElm = $('<div />', {
@@ -1357,6 +1397,7 @@
             $('.timeline-signature').append(tlNodeElm);
         }
     }
+
     function placeEvents(obj) {
         // Placing all events
         var $this = $(obj),
@@ -1371,7 +1412,7 @@
             tlTotalCols = Number(data.timeline.attr('total-cols')),
             minGridPer = Number(data.timeline.attr('min-grid-per')),
             minGridSize = Number(data.timeline.attr('min-grid-size')),
-            coordinate = { x: 0, y: 0, w: 0 },
+            coordinate = {x: 0, y: 0, w: 0},
             tlWidth = minGridSize * tlTotalCols - 1;
         //var eventNodes = [];
         $this.find('.timeline-loader').css('display', 'block');
@@ -1444,41 +1485,39 @@
                                 break;
                         }
                     }
-                } else
-                    if (isBetweenTo(evtEndDt, tlStartDt, tlEndDt)) {
-                        // When the event end date and time is within the time line display range.
-                        coordinate.x = 0;
-                        coordinate.y = typeof evt.row !== 'undefined' ? (evt.row - 1) * rowH : 0;
-                        switch (tlScale) {
-                            case 'years':
-                                coordinate.w = Math.floor((evtEndDt - tlStartDt) / msMonth * gridSize);
-                                break;
-                            case 'months':
-                                coordinate.w = Math.floor((evtEndDt - tlStartDt) / msDay * gridSize);
-                                break;
-                            case 'days':
-                                coordinate.w = Math.floor((evtEndDt - tlStartDt) / msHour * gridSize);
-                                break;
-                        }
-                    } else
-                        if (isBetweenTo(tlStartDt, evtStartDt, evtEndDt) && isBetweenTo(tlEndDt, evtStartDt, evtEndDt)) {
-                            // If the timeline display range is included within the event period. (for long-term band events)
-                            coordinate.x = 0;
-                            coordinate.y = typeof evt.row !== 'undefined' ? (evt.row - 1) * rowH : 0;
-                            switch (tlScale) {
-                                case 'years':
-                                    coordinate.w = Math.floor((tlEndDt - tlStartDt) / msMonth * gridSize);
-                                    break;
-                                case 'months':
-                                    coordinate.w = Math.floor((tlEndDt - tlStartDt) / msDay * gridSize);
-                                    break;
-                                case 'days':
-                                    coordinate.w = Math.floor((tlEndDt - tlStartDt) / msHour * gridSize);
-                                    break;
-                            }
-                        } else {
-                            coordinate.w = 0;
-                        }
+                } else if (isBetweenTo(evtEndDt, tlStartDt, tlEndDt)) {
+                    // When the event end date and time is within the time line display range.
+                    coordinate.x = 0;
+                    coordinate.y = typeof evt.row !== 'undefined' ? (evt.row - 1) * rowH : 0;
+                    switch (tlScale) {
+                        case 'years':
+                            coordinate.w = Math.floor((evtEndDt - tlStartDt) / msMonth * gridSize);
+                            break;
+                        case 'months':
+                            coordinate.w = Math.floor((evtEndDt - tlStartDt) / msDay * gridSize);
+                            break;
+                        case 'days':
+                            coordinate.w = Math.floor((evtEndDt - tlStartDt) / msHour * gridSize);
+                            break;
+                    }
+                } else if (isBetweenTo(tlStartDt, evtStartDt, evtEndDt) && isBetweenTo(tlEndDt, evtStartDt, evtEndDt)) {
+                    // If the timeline display range is included within the event period. (for long-term band events)
+                    coordinate.x = 0;
+                    coordinate.y = typeof evt.row !== 'undefined' ? (evt.row - 1) * rowH : 0;
+                    switch (tlScale) {
+                        case 'years':
+                            coordinate.w = Math.floor((tlEndDt - tlStartDt) / msMonth * gridSize);
+                            break;
+                        case 'months':
+                            coordinate.w = Math.floor((tlEndDt - tlStartDt) / msDay * gridSize);
+                            break;
+                        case 'days':
+                            coordinate.w = Math.floor((tlEndDt - tlStartDt) / msHour * gridSize);
+                            break;
+                    }
+                } else {
+                    coordinate.w = 0;
+                }
                 if (coordinate.w > 0) {
                     if (tlType === 'point') {
                         // For event view type: point
@@ -1498,10 +1537,9 @@
                         });
                         if (evt.bdColor) {
                             tlNodeElm.css('border-color', evt.bdColor);
-                        } else
-                            if (evt.bgColor) {
-                                tlNodeElm.css('border-color', evt.bgColor);
-                            }
+                        } else if (evt.bgColor) {
+                            tlNodeElm.css('border-color', evt.bgColor);
+                        }
                         if (evt.image) {
                             tlNodeElm.css('background-image', 'url(' + evt.image + ')');
                         }
@@ -1509,14 +1547,13 @@
                             $.each(evt.relation, function (key, value) {
                                 if ($.inArray(key, ['before', 'after', 'size']) != -1 && !isNaN(value)) {
                                     tlNodeElm.attr('data-relay-' + key, Number(value));
-                                } else
-                                    if (key === 'curve') {
-                                        if ($.inArray(value, ['lt', 'rt', 'lb', 'rb']) != -1) {
-                                            tlNodeElm.attr('data-relay-curve', value);
-                                        }
-                                    } else {
-                                        tlNodeElm.attr('data-relay-' + key, value);
+                                } else if (key === 'curve') {
+                                    if ($.inArray(value, ['lt', 'rt', 'lb', 'rb']) != -1) {
+                                        tlNodeElm.attr('data-relay-curve', value);
                                     }
+                                } else {
+                                    tlNodeElm.attr('data-relay-' + key, value);
+                                }
                             });
                         }
                     } else {
@@ -1565,22 +1602,31 @@
             $this.find('.timeline-event-pointer').hover(function (e) {
                 var defaultAxis;
                 if (e.type === 'mouseenter') {
-                    defaultAxis = { left: parseInt($(this).css('left')), top: parseInt($(this).css('top')), width: parseInt($(this).css('width')), height: parseInt($(this).css('height')) };
+                    defaultAxis = {
+                        left: parseInt($(this).css('left')),
+                        top: parseInt($(this).css('top')),
+                        width: parseInt($(this).css('width')),
+                        height: parseInt($(this).css('height'))
+                    };
                     $(this).attr('data-default-axis', JSON.stringify(defaultAxis));
                     // on hover action
                     if (!$(this).hasClass('hovered')) {
-                        $(this).addClass('hovered').animate({ left: defaultAxis.left - rowH / 10, top: defaultAxis.top - rowH / 10, width: defaultAxis.width + rowH / 10 * 2, height: defaultAxis.height + rowH / 10 * 2 }, 0);
+                        $(this).addClass('hovered').animate({
+                            left: defaultAxis.left - rowH / 10,
+                            top: defaultAxis.top - rowH / 10,
+                            width: defaultAxis.width + rowH / 10 * 2,
+                            height: defaultAxis.height + rowH / 10 * 2
+                        }, 0);
                     }
-                } else
-                    if (e.type === 'mouseleave') {
-                        defaultAxis = $(this).data('defaultAxis');
-                        $(this).css('left', defaultAxis.left + 'px').css('top', defaultAxis.top + 'px').css('width', defaultAxis.width + 'px').css('height', defaultAxis.height + 'px');
-                        $(this).removeAttr('data-default-axis');
-                        // off hover action
-                        if ($(this).hasClass('hovered')) {
-                            $(this).removeClass('hovered');
-                        }
+                } else if (e.type === 'mouseleave') {
+                    defaultAxis = $(this).data('defaultAxis');
+                    $(this).css('left', defaultAxis.left + 'px').css('top', defaultAxis.top + 'px').css('width', defaultAxis.width + 'px').css('height', defaultAxis.height + 'px');
+                    $(this).removeAttr('data-default-axis');
+                    // off hover action
+                    if ($(this).hasClass('hovered')) {
+                        $(this).removeClass('hovered');
                     }
+                }
             });
 
         }
@@ -1626,7 +1672,7 @@
                         };
                     }
                 } else {
-                    startPoint = { x: 0, y: selfPoint.y };
+                    startPoint = {x: 0, y: selfPoint.y};
                 }
                 if (startPoint) {
                     diffRow = (startPoint.y - selfPoint.y) / rowH;
@@ -1648,7 +1694,7 @@
                         };
                     }
                 } else {
-                    endPoint = { x: canvas.width, y: selfPoint.y };
+                    endPoint = {x: canvas.width, y: selfPoint.y};
                 }
                 if (endPoint) {
                     diffRow = (selfPoint.y - endPoint.y) / rowH;
@@ -1667,7 +1713,7 @@
                 return;
             }
             curve = curve || false;
-            var diff = { x: Math.abs((start.x - end.x) / rowH), y: Math.abs((start.y - end.y) / rowH) },
+            var diff = {x: Math.abs((start.x - end.x) / rowH), y: Math.abs((start.y - end.y) / rowH)},
                 controlPoint;
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
@@ -1730,11 +1776,11 @@
             return true;
         }
         $('.timeline-event-view').empty();
-        var tlevHeader = $('<div />', { addClass: "timeline-event-header" }),
-            tlevLabel = $('<h3 />', { addClass: "timeline-event-label" }),
-            tlevMeta = $('<div />', { addClass: "timeline-event-meta" }),
-            tlevBody = $('<div />', { addClass: "timeline-event-body" }),
-            tlevFooter = $('<div />', { addClass: "timeline-event-footer" }),
+        var tlevHeader = $('<div />', {addClass: "timeline-event-header"}),
+            tlevLabel = $('<h3 />', {addClass: "timeline-event-label"}),
+            tlevMeta = $('<div />', {addClass: "timeline-event-meta"}),
+            tlevBody = $('<div />', {addClass: "timeline-event-body"}),
+            tlevFooter = $('<div />', {addClass: "timeline-event-footer"}),
             temp;
         tlevLabel.text(eventData.label);
         if (metaFormat.end === '') {
@@ -1884,8 +1930,8 @@
     function zerofill(num, digit) {
         // Return numeric string with zero-fill the specific upper digits
         var strDuplicate = function (n, str) {
-            return Array(n + 1).join(str);
-        },
+                return Array(n + 1).join(str);
+            },
             zero = strDuplicate(digit - 1, '0');
         return String(num).length == digit ? num : (zero + num).substr(num * -1);
     }
@@ -1894,8 +1940,29 @@
         // Date format like PHP
         format = format || '';
         var baseDt = Object.prototype.toString.call(date) === '[object Date]' ? date : new Date(normalizeDate(date)),
-            month = { 'Jan': 'January', 'Feb': 'February', 'Mar': 'March', 'Apr': 'April', 'May': 'May', 'Jun': 'June', 'Jul': 'July', 'Aug': 'August', 'Sep': 'September', 'Oct': 'October', 'Nov': 'November', 'Dec': 'December' },
-            day = { 'Sun': 'Sunday', 'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 'Thu': 'Thurseday', 'Fri': 'Friday', 'Sat': 'Saturday' },
+            month = {
+                'Jan': 'January',
+                'Feb': 'February',
+                'Mar': 'March',
+                'Apr': 'April',
+                'May': 'May',
+                'Jun': 'June',
+                'Jul': 'July',
+                'Aug': 'August',
+                'Sep': 'September',
+                'Oct': 'October',
+                'Nov': 'November',
+                'Dec': 'December'
+            },
+            day = {
+                'Sun': 'Sunday',
+                'Mon': 'Monday',
+                'Tue': 'Tuesday',
+                'Wed': 'Wednesday',
+                'Thu': 'Thurseday',
+                'Fri': 'Friday',
+                'Sat': 'Saturday'
+            },
             ma = ['am', 'pm'], //err
             formatStrings = format.split(''),
             converted = '',
@@ -1917,7 +1984,7 @@
             dateCount = function (dateObj) {
                 var _tmp = new Date(dateObj.getFullYear(), 0, 1),
                     sum = 0, i;
-                for (i = 0; i < dateObj.getMonth() ; i++) {
+                for (i = 0; i < dateObj.getMonth(); i++) {
                     _tmp.setMonth(i);
                     sum += lastDayOfMonth(_tmp);
                 }
@@ -2078,7 +2145,7 @@
         } else {
             $.ajax({
                 url: '//ajaxhttpheaders.appspot.com',
-                data: { callback: pluginName },
+                data: {callback: pluginName},
                 dataType: 'jsonp'
             }).done(function (headers) {
                 var tmpLang, langs, qualities, country;
@@ -2097,21 +2164,48 @@
         return dfd.promise();
     };
 
-    function importLocale(tlObj) {
-        var dfd = $.Deferred(),
-            langDir = tlObj.data('timeline').timeline.attr('langs-dir') || './langs/',
-            loadPath = langDir + tlObj[0].lang + '.json'; // updated from `tlObj[0].lang.toLowerCase()`
-        $.ajax({
-            url: loadPath,
-            type: 'get',
-            dataType: 'json'
-        }).done(function (locale) {
-            dfd.resolve(locale);
-        }).fail(function () {
-            dfd.reject();
-        });
-
-        return dfd.promise();
+    function importLocale(tlObj, callback) {
+        var locale = {
+            "month": {
+                "Jan": "January",
+                "Feb": "February",
+                "Mar": "March",
+                "Apr": "April",
+                "May": "May",
+                "Jun": "June",
+                "Jul": "July",
+                "Aug": "August",
+                "Sep": "September",
+                "Oct": "October",
+                "Nov": "November",
+                "Dec": "December"
+            },
+            "day": {
+                "Sun": "Sunday",
+                "Mon": "Monday",
+                "Tue": "Tuesday",
+                "Wed": "Wednesday",
+                "Thu": "Thurseday",
+                "Fri": "Friday",
+                "Sat": "Saturday"
+            },
+            "ma": [
+                "am",
+                "pm"
+            ],
+            "format": {
+                "full": "j M Y",
+                "year": "Y",
+                "month": "M Y",
+                "day": "D, j M",
+                "years": "Y",
+                "months": "F",
+                "days": "j",
+                "meta": "g:i A, D F j, Y",
+                "metato": ""
+            }
+        };
+        callback(locale);
     }
 
 })(jQuery);

@@ -1,13 +1,9 @@
 /*! * jQuery Timeline Plugin * ------------------------ * Version: 1.0.5 * Coded by: ka2 ( https://ka2.org/ ) * Repository: https://github.com/ka215/jquery.timeline * Lisenced: MIT */
-@font-face{
-    font-family:jQueryTimeline;
-    src:url(fonts/jQueryTimeline.eot?t4qpol);
-    src:url(fonts/jQueryTimeline.eot?t4qpol#iefix) format("embedded-opentype"),url(fonts/jQueryTimeline.ttf?t4qpol) format("truetype"),url(fonts/jQueryTimeline.woff?t4qpol) format("woff"),url(fonts/jQueryTimeline.svg?t4qpol#jQueryTimeline) format("svg");
+@font-face{ 
     font-weight:400;
     font-style:normal
 }
-[class*=" jqtl-"],[class^=jqtl-]{
-    font-family:jQueryTimeline!important;
+[class*=" jqtl-"],[class^=jqtl-]{  
     speak:none;
     font-style:normal;
     font-weight:400;
@@ -48,10 +44,10 @@
     content:"\ed6d"
 }
 .jqtl-circle-right:before{
-    content:"\edee"
+    content:"\021E8"
 }
 .jqtl-circle-left:before{
-    content:"\edf2"
+    content: "\021E6";
 }
 .jqtl-circle-fill-right:before{
     content:"\edf6"
@@ -70,7 +66,7 @@
     position:relative;
     display:block;
     visibility:hidden;
-    margin:15px;
+    margin:15px 0px;
     font-size:1rem;
     line-height:1.5
 }
@@ -90,8 +86,7 @@
     margin-right:.3rem
 }
 .timeline-from-date:before{
-    content:"\ea60";
-    font-family:jQueryTimeline!important;
+    content:"\ea60";   
     margin-right:.3rem;
     color:#7f7f7f;
     font-weight:400
@@ -271,11 +266,11 @@
     z-index:99
 }
 .timeline-node.timeline-text-truncate:after{
-    content:"\ec5c";
-    font-family:jQueryTimeline!important;
-    font-size:14px;
-    position:absolute;
-    right:5px
+  content: "\205D";
+  font-size: 16px;
+  font-weight: bold;
+  position: absolute;
+  right: 5px;
 }
 .timeline-loader{
     position:absolute;
@@ -350,7 +345,7 @@
     display:block;
     bottom:7px;
     width:1px;
-    height:calc(100% - 56px);
+    height:~"calc(100% - 56px)";
     border-left:2px dotted #e8383d;
     z-index:19
 }
@@ -358,8 +353,7 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
     bottom:0
 }
 .timeline-needle-pointer:before{
-    content:"\ea37";
-    font-family:jQueryTimeline!important;
+    content:"\ea37";   
     position:absolute;
     top:-8px;
     left:-7.5px;
@@ -427,8 +421,7 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
     font-weight:300
 }
 .timeline-event-meta:before{
-    content:"\ea60";
-    font-family:jQueryTimeline!important;
+    content:"\ea60";  
     color:#999;
     margin-right:.5rem
 }
@@ -464,16 +457,17 @@ _::-webkit-full-page-media,_:future,:root .timeline-needle-pointer{
     left: 0;
 }
 .with-signature .timeline-body {
+max-width: 100%;
     display: flex;
     overflow-y: auto;
     /* padding-right: 15px; */
 }
 .with-signature .timeline-footer {
-    width: calc(100% - 150px);
-    position: absolute;
-    right: 0;
-    top: 0;
-    display: inline-block;
+	width: ~"calc(100% - 150px)";
+	position: absolute;
+	right: 0;
+	top: 0;
+	display: inline-block;
 }
 
 .timeline-rows-signature{
